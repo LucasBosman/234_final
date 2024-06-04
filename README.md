@@ -61,7 +61,7 @@ This component focuses on training the RL agent using Proximal Policy Optimizati
 To set up the project, clone the repository and install the required dependencies:
 
 ```bash
-git clone https://github.com/yourusername/golf-rl-agent.git
+git clone https://github.com/LucasBosman/234_final.git
 cd golf-rl-agent
 pip install -r requirements.txt
 ```
