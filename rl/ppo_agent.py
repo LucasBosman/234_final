@@ -6,17 +6,17 @@ import random
 
 class PPOAgent():
     def __init__(self, image_shape, device, gamma, alpha, beta, tau, update_every, batch_size, ppo_epoch, clip_param, actor_m, critic_m):
-        self.image_shape = image_shape
-        self.seed = random.seed(0)
-        self.device = device
-        self.gamma = gamma
-        self.alpha = alpha
-        self.beta = beta
-        self.tau = tau
-        self.update_every = update_every
-        self.batch_size = batch_size
-        self.ppo_epoch = ppo_epoch
-        self.clip_param = clip_param
+        self.image_shape = image_shape # should be (?, 1200, 800)
+        self.seed = random.seed(0) # seed, hard coding 0 for determinism
+        self.device = device # device passed in
+        self.gamma = gamma # discount factor
+        self.alpha = alpha # actor lr
+        self.beta = beta # critic lr
+        self.tau = tau # for use in calculating PPO
+        self.update_every = update_every # how often we backprop our model
+        self.batch_size = batch_size 
+        self.ppo_epoch = ppo_epoch # num update epochs in PPO
+        self.clip_param = clip_param # hyperparam for PPO
 
         # Actor-Network
         self.actor_net = actor_m(image_shape, (1, 2), (1,)).to(self.device)
@@ -26,7 +26,7 @@ class PPOAgent():
         self.critic_net = critic_m(image_shape).to(self.device)
         self.critic_optimizer = optim.Adam(self.critic_net.parameters(), lr=self.beta)
 
-        # Memory
+        # Memory for use in delayed updating
         self.log_probs = []
         self.values    = []
         self.states    = []
@@ -37,6 +37,7 @@ class PPOAgent():
 
         self.t_step = 0
 
+    # This function updates our actor and critic models every update_every steps
     def step(self, state, action, value, log_prob, reward, done, next_state):
         # Unpack state tuple
         img, pos, lie = state
@@ -62,13 +63,12 @@ class PPOAgent():
 
         self.t_step = (self.t_step + 1) % self.update_every
 
-        if self.t_step == 0:
-            self.learn((next_img, next_pos, next_lie))
-            self.reset_memory()
-                
+        if self.t_step == 0: 
+            self.learn((next_img, next_pos, next_lie)) # update our model
+            self.reset_memory() # reset
+
+    # This function calls forward on our models and returns the action given a current state    
     def act(self, state):
-        """Returns action, log_prob, value for given state as per current policy."""
-        
         image = torch.from_numpy(state[0]).unsqueeze(0).to(self.device)
         position = torch.from_numpy(state[1]).unsqueeze(0).to(self.device)
         lie = torch.tensor([state[2]]).unsqueeze(0).to(self.device)
@@ -77,33 +77,34 @@ class PPOAgent():
         theta, club_dist = self.actor_net(state) # get theta and club distribution
         value = self.critic_net(state) # get predicted value
 
-        club = club_dist.sample()
+        club = club_dist.sample() # sample from club distribution
         action = (theta.item(), club.item() + 1) # Add 1 to club to get a number from 1-14
         log_prob = club_dist.log_prob(club)
 
         return action, log_prob, value
 
+    # This function updates our models
     def learn(self, next_state):
-        next_img, next_pos, next_lie = next_state
-        next_value = self.critic_net((next_img.unsqueeze(0), next_pos.unsqueeze(0), next_lie.unsqueeze(0)))
+        next_img, next_pos, next_lie = next_state # unpack next_state
+        next_value = self.critic_net((next_img.unsqueeze(0), next_pos.unsqueeze(0), next_lie.unsqueeze(0))) # get prediction
+s
+        returns = torch.cat(self.compute_gae(next_value)).detach() # compute returns
+        self.log_probs = torch.cat(self.log_probs).detach() # get log probs
+        self.values = torch.cat(self.values).detach() # get values
+        self.states = [tuple(torch.cat(s) for s in zip(*self.states))] # get states
+        self.actions = torch.cat(self.actions) # get actions
+        advantages = returns - self.values #calculate advantages
 
-        returns = torch.cat(self.compute_gae(next_value)).detach()
-        self.log_probs = torch.cat(self.log_probs).detach()
-        self.values = torch.cat(self.values).detach()
-        self.states = [tuple(torch.cat(s) for s in zip(*self.states))]
-        self.actions = torch.cat(self.actions)
-        advantages = returns - self.values
+        for _ in range(self.ppo_epoch): 
+            for state, action, old_log_probs, return_, advantage in self.ppo_iter(returns, advantages): # get batch of data, iterate through it
 
-        for _ in range(self.ppo_epoch):
-            for state, action, old_log_probs, return_, advantage in self.ppo_iter(returns, advantages):
+                theta, club_dist = self.actor_net(state) # get prediction from our model
+                value = self.critic_net(state) # get predicted value
 
-                theta, club_dist = self.actor_net(state)
-                value = self.critic_net(state)
+                entropy = club_dist.entropy().mean() # entropy term for PPO... needed for exploration
+                new_log_probs = club_dist.log_prob(action[:, 1]) # get club distribution... PPO???
 
-                entropy = club_dist.entropy().mean()
-                new_log_probs = club_dist.log_prob(action[:, 1])
-
-                ratio = (new_log_probs - old_log_probs).exp()
+                ratio = (new_log_probs - old_log_probs).exp() #
                 surr1 = ratio * advantage
                 surr2 = torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param) * advantage
 
@@ -119,15 +120,16 @@ class PPOAgent():
                 self.actor_optimizer.step()
                 self.critic_optimizer.step()
 
-        self.reset_memory()
+        self.reset_memory() # reset memory
 
-    
+    # Helper function for learn. 
     def ppo_iter(self, returns, advantage):
-        memory_size = len(self.states)
-        for _ in range(memory_size // self.batch_size):
-            rand_ids = np.random.randint(0, memory_size, self.batch_size)
-            yield self.states[rand_ids, :], self.actions[rand_ids], self.log_probs[rand_ids], returns[rand_ids, :], advantage[rand_ids, :]
+        memory_size = len(self.states) # num states that we saw
+        for _ in range(memory_size // self.batch_size): # num states per batch
+            rand_ids = np.random.randint(0, memory_size, self.batch_size) # get random indices to get random batch of data
+            yield self.states[rand_ids, :], self.actions[rand_ids], self.log_probs[rand_ids], returns[rand_ids, :], advantage[rand_ids, :] # get batch of data for training
 
+    # Cleans up mmeory
     def reset_memory(self):
         self.log_probs = []
         self.values    = []
@@ -137,6 +139,7 @@ class PPOAgent():
         self.masks     = []
         self.entropies = []
 
+    # Generalized Advantage Estimation
     def compute_gae(self, next_value):
         gae = 0
         returns = []
