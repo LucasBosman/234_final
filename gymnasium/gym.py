@@ -1,18 +1,18 @@
 import gymnasium as gym
-from golf_game import GolfGameEnv
+import pygame
+from golf_env import GolfGameEnv
+from constants import SCREEN_WIDTH, SCREEN_HEIGHT
 
-#need to register environment first
-gym.register(
-    id='GolfGame-v0',
-    entr_point='golf_game:GolfGameEnv',
-    kwargs={'player': None}
-)
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+env = GolfGameEnv(player_profile="golf/profile.json", course_profile="golf/course.json", screen=screen)
+env.reset()
+pygame.init()
 
-#create player or sample player from previously made players
-player = 
+while True:
+    action = env.action_space.sample()
+    observation, reward, terminated = env.step(action)
+    env.render()
+    if terminated:
+        break
 
-#Test env
-env = gym.make('GolfGame-v0')
-obs = env.reset()
-env.render()
-
+pygame.quit()

@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------------
 # File: course.py
 # Authors: Guinness
-# Date: 10/12/2021
+# Date: 06/04/2023
 # Description: This file contains the CourseElement, Teebox, and GolfCourse classes. The CourseElement class is an abstract class that represents a course element. 
 # The Teebox class is a subclass of CourseElement that represents a teebox. The GolfCourse class represents a golf course and contains methods 
 # -------------------------------------------------------------------------------------
@@ -318,6 +318,10 @@ class GolfCourse:
         screen.blit(self.course_surface, (0, 0))
 
     def get_element_at(self, pos):
+        # check if pos is out of the screen
+        if pos[0] < 0 or pos[0] >= SCREEN_WIDTH or pos[1] < 0 or pos[1] >= SCREEN_HEIGHT:
+            return "Out of Bounds"
+
         # check the color of the pixel at the position to determine the element
         color = self.course_surface.get_at(pos)
         

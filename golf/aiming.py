@@ -11,6 +11,7 @@ class AimingSystem:
         self.current_club = 'Driver'
         self.current_lie = 'Teebox'
         self.trail_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        self.prev_target = None
 
     def draw_arrow(self, screen, ball_pos, target_pos):
         direction = np.array(target_pos) - ball_pos
@@ -81,6 +82,7 @@ class AimingSystem:
         screen.blit(gaussian_surface, (pos_x, pos_y))
 
     def sample_gaussian(self, ball_pos, target_pos):
+        self.prev_target = target_pos # store the intended target
         direction = np.array(target_pos) - ball_pos
         distance = self.params[self.current_club][self.current_lie]["distance"]
         mean_pos = ball_pos + distance * (direction / np.linalg.norm(direction))

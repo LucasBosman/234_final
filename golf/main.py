@@ -7,7 +7,6 @@ def main():
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Random Golf Course Generator")
-    font = pygame.font.Font(None, 36)
     clock = pygame.time.Clock()
 
     game = Game(screen, "golf/profile.json")

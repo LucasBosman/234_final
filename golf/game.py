@@ -49,7 +49,7 @@ class Game:
 
         else:
             # draw the aiming system
-            if self.ball.target_pos is None:
+            if self.ball.next_pos is None:
                 self.aiming_system.draw_arrow(self.screen, self.ball.get_pos(), mouse_pos)
                 self.aiming_system.draw_gaussian(self.screen, self.ball.get_pos(), mouse_pos)
             else:
@@ -69,17 +69,17 @@ class Game:
                     return
 
                 # sample a target position based on the aiming system
-                target_pos = self.aiming_system.sample_gaussian(self.ball.get_pos(), mouse_pos)
+                next_pos = self.aiming_system.sample_gaussian(self.ball.get_pos(), mouse_pos)
 
                 # if the ball went out of bounds or into water, handle it
-                next_lie = self.course.get_element_at(target_pos.astype(int))
+                next_lie = self.course.get_element_at(next_pos.astype(int))
                 if next_lie == 'Out of Bounds' or next_lie == 'Water Hazard':
-                    self.handle_out_of_bounds(target_pos, next_lie)
+                    self.handle_out_of_bounds(next_pos, next_lie)
 
                 # if the ball ended up on the green, then the hole is complete
                 elif next_lie == 'Green':
                     # animate the ball travelling to the green
-                    self.ball.start_animation(target_pos)
+                    self.ball.start_animation(next_pos, mouse_pos)
                     self.ball.animate_path(self.screen, pygame.time.Clock(), self.course, self.aiming_system, self.button_rect, self.font, self.score, self.current_lie)
                     # more hole completion logic
                     self.score += 1
@@ -89,7 +89,7 @@ class Game:
                 # otherwise, we just move the ball to the target position
                 else:
                     # animate the ball travelling to the target position
-                    self.ball.start_animation(target_pos)
+                    self.ball.start_animation(next_pos, mouse_pos)
                     self.ball.animate_path(self.screen, pygame.time.Clock(), self.course, self.aiming_system, self.button_rect, self.font, self.score, self.current_lie)
                     # update the current lie and score
                     self.score += 1
@@ -114,7 +114,7 @@ class Game:
         # save the previous position
         previous_pos = self.ball.get_pos() 
         # animate the ball travelling to the target position
-        self.ball.start_animation(target_pos)
+        self.ball.start_animation(target_pos, self.aiming_system.prev_target)
         self.ball.animate_path(self.screen, pygame.time.Clock(), self.course, self.aiming_system, self.button_rect, self.font, self.score, self.current_lie)
         # increment the score and display the out of bounds message
         self.score += 2

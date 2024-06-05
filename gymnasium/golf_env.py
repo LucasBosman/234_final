@@ -9,16 +9,21 @@
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
-from ..golf.game import Game
-from ..golf.constants import SCREEN_WIDTH, SCREEN_HEIGHT
+import sys
+import pygame
+sys.path.append('/Users/guinnesschen/Desktop/234_final/golf')
+from game import Game
+from constants import SCREEN_WIDTH, SCREEN_HEIGHT
 
 class GolfGameEnv(gym.Env):
-    def __init__(self, player_profile, course_profile):
+    def __init__(self, player_profile, course_profile, screen):
         super().__init__()
+        pygame.init()
         self.game = None
         # save player and course profiles
         self.player_profile = player_profile
         self.course_profile = course_profile
+        self.screen = screen
 
         # define action and observation spaces and reward range
         self.action_space = spaces.Dict({
@@ -35,21 +40,31 @@ class GolfGameEnv(gym.Env):
     def reset(self, seed=None):
         super().reset(seed=seed)
         #initialize game
-        self.game = Game(screen, "golf/profile.json")
+        self.game = Game(self.screen, "golf/profile.json")
+
+        # construct the observation object
+        observation = {
+            "ball_position": self.game.ball.get_pos(),
+            "lie": "Teebox", # initial lie is always the teebox
+            "course": pygame.surfarray.array3d(self.game.course.course_surface)
+        }
+
+        return observation
 
     def step(self, action):
-        club, direction = action["club"], action["direction"]
+        club_index, direction = action["club"], action["direction"]
+        club = self.game.clubs[club_index]
         # set up the aiming system with the selected club and lie
-        self.game.aiming_system.set_club(club)
-        current_lie = self.game.course.get_element_at(self.game.ball.get_pos())
+        self.game.aiming_system.change_club(club)
+        current_lie = self.game.course.get_element_at(self.game.ball.get_pos().astype(int))
         self.game.aiming_system.set_lie(current_lie)
 
         # compute a target position based on the direction, where the magnitute is arbitrary
-        target_pos = np.array([np.cos(direction), np.sin(direction)]) * 100
+        target_pos = self.game.ball.get_pos() + np.array([np.cos(direction), np.sin(direction)]).squeeze(1) * 100
 
         # sample the next position of the ball
         next_pos = self.game.aiming_system.sample_gaussian(self.game.ball.get_pos(), target_pos)
-        next_lie = self.game.course.get_element_at(next_pos)
+        next_lie = self.game.course.get_element_at(next_pos.astype(int))
 
         # handle out of bounds and water hazards
         if next_lie == "Out of Bounds" or next_lie == "Water Hazard":
@@ -78,13 +93,25 @@ class GolfGameEnv(gym.Env):
         observation = {
             "ball_position": self.game.ball.get_pos(),
             "lie": next_lie,
-            "course": pygame.surfarray(self.game.course.course_surface)
+            "course": pygame.surfarray.array3d(self.game.course.course_surface)
         }
 
-        return observation, reward, terminated 
+        return observation, reward, terminated
         
     def render(self):
-        #render the game
-        pass
+        clock = pygame.time.Clock()
+
+        if self.game.ball.prev_pos is None:
+            return
+        # temporarily move the ball back to the previous position
+        next_pos = self.game.ball.get_pos()
+        self.game.ball.x, self.game.ball.y = self.game.ball.prev_pos[0], self.game.ball.prev_pos[1]
+
+        # animate the ball moving to the current position
+        self.game.ball.start_animation(next_pos, self.game.aiming_system.prev_target)
+        self.game.ball.animate_path(self.game.screen, clock, self.game.course, self.game.aiming_system, self.game.button_rect, self.game.font, self.game.score, self.game.current_lie)
+
+        # move the ball back to the current position
+        self.game.ball.move_to(*next_pos)
 
     
