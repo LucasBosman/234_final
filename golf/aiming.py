@@ -47,7 +47,8 @@ class AimingSystem:
         return rotated_cov
 
     def _draw_gaussian_distribution(self, screen, mean, cov):
-        size = 500  # Define the size of the surface
+        size = 7 * int(np.sqrt(np.max(cov))) # Define the size of the surface
+
         center = size // 2
 
         # Create a surface to draw the Gaussian distribution

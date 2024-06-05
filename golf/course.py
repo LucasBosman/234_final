@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------------
-# File: course.property
+# File: course.py
 # Authors: Guinness
 # Date: 10/12/2021
 # Description: This file contains the CourseElement, Teebox, and GolfCourse classes. The CourseElement class is an abstract class that represents a course element. 
@@ -262,7 +262,7 @@ class GolfCourse:
 
     def initialize_hazards(self):
         # sample the number of each type of hazard
-        num_bunkers = self.difficulty * self.par // 2
+        num_bunkers = max(0, self.difficulty * self.par // 2 - 1)
         num_water_hazards = self.difficulty * self.par // 6
 
         # create the hazards
@@ -270,9 +270,9 @@ class GolfCourse:
         self.water_hazards = []
 
         # helper function to get a random point along the fairway path
-        def get_random_point_along_fairway(max_offset=80, min_offset=40):
+        def get_random_point_along_fairway(max_offset=55, min_offset=20):
             start_index = len(self.fairway_and_rough.fairway_path) // 4
-            end_index = 3 * len(self.fairway_and_rough.fairway_path) // 4
+            end_index = int(2.75 * len(self.fairway_and_rough.fairway_path) // 4)
             index = random.randint(start_index, end_index)
             point = self.fairway_and_rough.fairway_path[index]
             offset = random.uniform(min_offset, max_offset)
@@ -291,9 +291,9 @@ class GolfCourse:
 
         for _ in range(num_bunkers):
             while True:
-                bunker_width = random.randint(30, 120)
-                bunker_height = random.randint(30, 70)
-                bunker_position = get_random_point_along_fairway(80)
+                bunker_width = random.randint(20, 90)
+                bunker_height = random.randint(20, 55)
+                bunker_position = get_random_point_along_fairway()
                 bunker_angle = random.randint(0, 360)
 
                 bunker_rect = pygame.Rect(bunker_position[0] - bunker_width / 2, bunker_position[1] - bunker_height / 2, bunker_width, bunker_height)
@@ -303,9 +303,9 @@ class GolfCourse:
 
         for _ in range(num_water_hazards):
             while True:
-                water_width = random.randint(100, 170)
-                water_height = random.randint(80, 140)
-                water_position = get_random_point_along_fairway(30)
+                water_width = random.randint(60, 120)
+                water_height = random.randint(50, 100)
+                water_position = get_random_point_along_fairway()
                 water_angle = random.randint(0, 360)
 
                 water_rect = pygame.Rect(water_position[0] - water_width / 2, water_position[1] - water_height / 2, water_width, water_height)

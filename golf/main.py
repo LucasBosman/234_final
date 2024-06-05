@@ -16,7 +16,7 @@ def main():
 
     button_rect = pygame.Rect((SCREEN_WIDTH - BUTTON_WIDTH) // 2, SCREEN_HEIGHT - BUTTON_HEIGHT - 20, BUTTON_WIDTH, BUTTON_HEIGHT)
 
-    game = Game(screen, font, button_rect, "profile.json")
+    game = Game(screen, font, button_rect, "golf/profile.json")
 
     running = True
     while running:
