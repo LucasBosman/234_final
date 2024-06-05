@@ -40,9 +40,12 @@ class PPOAgent():
     # This function updates our actor and critic models every update_every steps
     def step(self, state, action, value, log_prob, reward, done, next_state):
         # Unpack state tuple
-        img, pos, lie = state
-        next_img, next_pos, next_lie = next_state
+        img, pos, lie = state["course"], state["ball_position"], state["lie"]
+        next_img, next_pos, next_lie = next_state["course"], next_state["ball_position"], next_state["lie"]
 
+        # currently lie is a string, 
+    
+        
         # Convert state components to tensors
         img = torch.from_numpy(img).unsqueeze(0).to(self.device)
         pos = torch.tensor(pos, dtype=torch.float32).unsqueeze(0).to(self.device)
@@ -63,7 +66,7 @@ class PPOAgent():
 
         self.t_step = (self.t_step + 1) % self.update_every
 
-        if self.t_step == 0: 
+        if self.t_step == 0 or done: 
             self.learn((next_img, next_pos, next_lie)) # update our model
             self.reset_memory() # reset
 
@@ -78,7 +81,7 @@ class PPOAgent():
         value = self.critic_net(state) # get predicted value
 
         club = club_dist.sample() # sample from club distribution
-        action = (theta.item(), club.item() + 1) # Add 1 to club to get a number from 1-14
+        action = (theta.item(), club.item()) # Add 1 to club to get a number from 1-14
         log_prob = club_dist.log_prob(club)
 
         return action, log_prob, value
@@ -87,7 +90,7 @@ class PPOAgent():
     def learn(self, next_state):
         next_img, next_pos, next_lie = next_state # unpack next_state
         next_value = self.critic_net((next_img.unsqueeze(0), next_pos.unsqueeze(0), next_lie.unsqueeze(0))) # get prediction
-s
+
         returns = torch.cat(self.compute_gae(next_value)).detach() # compute returns
         self.log_probs = torch.cat(self.log_probs).detach() # get log probs
         self.values = torch.cat(self.values).detach() # get values
@@ -112,6 +115,8 @@ s
                 critic_loss = (return_ - value).pow(2).mean()
 
                 loss = actor_loss + 0.5 * critic_loss - 0.001 * entropy
+
+                print(loss.item())
 
                 # Minimize the loss
                 self.actor_optimizer.zero_grad()

@@ -11,6 +11,12 @@ pygame.init()
 while True:
     action = env.action_space.sample()
     observation, reward, terminated = env.step(action)
+    
+    print(observation["course"].shape)
+    print(observation["ball_position"].shape)
+    print(observation["lie"].shape)
+    print(reward)
+    print(terminated)
     env.render()
     if terminated:
         break

@@ -2,28 +2,32 @@ import gymnasium as gym
 import random
 import torch
 import numpy as np
-from agent import PPOAgent
-import ActorCnn CriticCnn
+import sys
+import pygame
+sys.path.append('/Users/guinnesschen/Desktop/234_final/gymnasium')
+from golf_env import GolfGameEnv
+sys.path.append('/Users/guinnesschen/Desktop/234_final/golf')
+from constants import SCREEN_WIDTH, SCREEN_HEIGHT
+sys.path.append('/Users/guinnesschen/Desktop/234_final/rl')
+from ppo_agent import PPOAgent
+from actor_cnn import ActorCnn, CriticCnn
 
-
-#need to register environment first
-gym.register(
-    id='GolfGame-v0',
-    entr_point='golf_game:GolfGameEnv',
-    kwargs={'player': None}
-)
+#initialize pygame
+pygame.init()
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 #make the environment
-env = gym.make('GolfGame-v0')
+env = GolfGameEnv(player_profile="golf/profile.json", course_profile="golf/course.json", screen=screen)
 
 #get device
-device = torch.device("cuda" if torch.cuda.is_avaiable() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Device: ", device)
 
 #reset env
 env.reset()
 
-IMAGE_SHAPE = (3, 1200, 800) # this is the size of our image... I added 3 here for RGB, but honestly IDK what input dim should be
+IMAGE_SHAPE = (3, 800, 500) # this is the size of our image... I added 3 here for RGB, but honestly IDK what input dim should be
+BALL_POSITION_SHAPE = (2,) # this is the x, y position of the ball
 GAMMA = 0.99 # this is discount factor
 ALPHA = 0.0001 # actor LR
 BETA = 0.0001 # critic LR
@@ -42,8 +46,16 @@ def train(n_episodes=1000):
         state = env.reset() # Reset, aka start at beginning
         score = 0 #Set score to 0
         done = False
+        num_steps = 0
         while True:
+            print(f'num steps: {num_steps}')
             action, log_prob, value = agent.act(state) # Get predicted action and value, plus log_prob
+            theta, club_index = action
+            # create action dict
+            action = {
+                "club": env.game.clubs[club_index],
+                "direction": theta
+            }
             next_state, reward, done = env.step(action) # Get next state, reward, and whether or not we are done from our Simulator
             score += reward # Add reward to score
             agent.step(state, action, value, log_prob, reward, done, next_state) # Take a step on the agent (may or may not update model)
@@ -53,8 +65,11 @@ def train(n_episodes=1000):
             else:
                 state = next_state
 
+            num_steps += 1
+
         print(f"Episode {i_episode} achieved a score of {score}")
 
+print('start training')
 train()
 
 # # TO VISUALIZE
