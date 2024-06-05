@@ -52,7 +52,7 @@ class GolfGameEnv(gym.Env):
         next_lie = self.game.course.get_element_at(next_pos)
 
         # handle out of bounds and water hazards
-        if next_lie == "OutOfBounds" or next_lie == "Water":
+        if next_lie == "Out of Bounds" or next_lie == "Water Hazard":
             # update game state
             self.game.score += 2
             # set the variables which will be returned by the step function
@@ -85,7 +85,6 @@ class GolfGameEnv(gym.Env):
         
     def render(self):
         #render the game
-
         pass
 
     
