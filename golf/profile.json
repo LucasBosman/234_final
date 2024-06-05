@@ -78,7 +78,7 @@
         "Bunker": {"distance": 30, "horizontal_std": 55, "vertical_std": 50}
     },
     "Driver": {
-        "Teebox": {"distance": 250, "horizontal_std": 75, "vertical_std": 50},
+        "Teebox": {"distance": 260, "horizontal_std": 75, "vertical_std": 55},
         "Fairway": {"distance": 140, "horizontal_std": 100, "vertical_std": 95},
         "Rough": {"distance": 100, "horizontal_std": 120, "vertical_std": 50},
         "Bunker": {"distance": 15, "horizontal_std": 55, "vertical_std": 30}

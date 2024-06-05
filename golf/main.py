@@ -1,10 +1,6 @@
 import pygame
-from course import GolfCourse
-from ball import Ball
-from ui import draw_button, draw_club_selection, draw_score_tracker
-from aiming import AimingSystem
 from game import Game
-from constants import *
+from constants import WHITE, SCREEN_WIDTH, SCREEN_HEIGHT, BUTTON_WIDTH, BUTTON_HEIGHT
 
 
 def main():
@@ -14,9 +10,7 @@ def main():
     font = pygame.font.Font(None, 36)
     clock = pygame.time.Clock()
 
-    button_rect = pygame.Rect((SCREEN_WIDTH - BUTTON_WIDTH) // 2, SCREEN_HEIGHT - BUTTON_HEIGHT - 20, BUTTON_WIDTH, BUTTON_HEIGHT)
-
-    game = Game(screen, font, button_rect, "golf/profile.json")
+    game = Game(screen, "golf/profile.json")
 
     running = True
     while running:
